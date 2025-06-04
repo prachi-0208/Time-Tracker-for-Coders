@@ -1,75 +1,70 @@
-let startTime = 0;
-let totalCodingTime = 0;
-let lastActiveSite = "";
+let startTime = null;
+let timerInterval = null;
 
-// Listen for tab activation (when the user switches tabs)
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    try {
-        let tab = await chrome.tabs.get(activeInfo.tabId);
-        if (!tab || !tab.url) {
-            console.warn("No URL found for activated tab.");
-            return;
-        }
-        handleSiteChange(tab.url);
-    } catch (error) {
-        console.error("Error getting tab info:", error);
-    }
-});
-
-// Listen for tab updates (when the URL changes)
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url) {
-        handleSiteChange(changeInfo.url);
-    }
-});
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "getStoredData") {
-        chrome.storage.local.get(null, (data) => sendResponse(data));
-        return true; // Required for async response
-    }
-});
-
-
-// Function to check if a site is a coding platform
 function isCodingSite(url) {
-    return url && (url.includes("leetcode.com") || url.includes("codeforces.com") || url.includes("github.com"));
+  return (
+    url.includes("leetcode.com") ||
+    url.includes("github.com") ||
+    url.includes("codeforces.com") ||
+    url.includes("hackerrank.com") ||
+    url.includes("takeuforward.org/plus/dsa")
+  );
 }
 
-// Handle site changes
-function handleSiteChange(url) {
-    if (!url) {
-        console.warn("handleSiteChange called with undefined URL"); // More detailed warning
-        return;
-    }
+function startTimer() {
+  if (timerInterval) return;
 
-    console.log("Switching to site:", url);
+  startTime = Date.now();
+  timerInterval = setInterval(() => {
+    chrome.storage.local.get(["codingTime"], (result) => {
+      const prevTime = result.codingTime || 0;
+      const newTime = prevTime + 1;
+      chrome.storage.local.set({ codingTime: newTime });
+    });
+  }, 1000); // every second
+}
 
-    if (isCodingSite(url)) {
-        if (lastActiveSite !== url) {
-            saveTimeSpent();
-            console.log("Tracking time for:", url);
-            startTime = Date.now();
-            lastActiveSite = url;
-        }
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  startTime = null;
+}
+
+chrome.tabs.onActivated.addListener(({ tabId }) => {
+  chrome.tabs.get(tabId, (tab) => {
+    if (isCodingSite(tab.url)) {
+      startTimer();
     } else {
-        saveTimeSpent();
-        lastActiveSite = "";
+      stopTimer();
     }
-}
+  });
+});
 
-// Save the time spent coding
-function saveTimeSpent() {
-    if (startTime > 0) {
-        let elapsedTime = (Date.now() - startTime) / 1000; // Convert to seconds
-
-        chrome.storage.local.get(["totalTime"], (result) => {
-            let newTotal = (result.totalTime || 0) + elapsedTime;
-            chrome.storage.local.set({ "totalTime": newTotal }, () => {
-                console.log("Total coding time updated:", newTotal);
-            });
-        });
-
-        startTime = 0; // Reset start time
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === "complete" && tab.active) {
+    if (isCodingSite(tab.url)) {
+      startTimer();
+    } else {
+      stopTimer();
     }
-}
+  }
+});
+
+chrome.windows.onFocusChanged.addListener((windowId) => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) {
+    stopTimer();
+  } else {
+    chrome.windows.get(windowId, { populate: true }, (window) => {
+      const activeTab = window.tabs.find((t) => t.active);
+      if (activeTab && isCodingSite(activeTab.url)) {
+        startTimer();
+      } else {
+        stopTimer();
+      }
+    });
+  }
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  stopTimer();
+});
