@@ -5,15 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Time Tracker</title>
   <link rel="stylesheet" href="popup.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container">
     <h2>Time Tracker</h2>
     <p>
-      <strong>Total Coding Time:</strong>
+      <strong>Today's Coding Time:</strong>
       <span id="timeSpent" aria-label="Coding time">Loading...</span>
     </p>
-    <button id="resetBtn">Reset Time</button>
+    <p>
+      <strong>Current Streak:</strong>
+      <span id="streakCount" aria-label="Coding streak">Loading...</span>
+    </p>
+    <h3>Daily Coding Time</h3>
+    <canvas id="dailyChart"></canvas>
+    <h3>Weekly Average</h3>
+    <canvas id="weeklyAverageChart"></canvas>
+    <button id="resetBtn">Reset All</button>
   </div>
   <script src="popup.js"></script>
 </body>

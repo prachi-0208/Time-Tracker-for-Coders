@@ -1,7 +1,7 @@
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    width: 220px;
+    width: 250px;
     padding: 15px;
     background-color: #f9f9f9;
     border-radius: 8px;
@@ -14,15 +14,33 @@ h2 {
     color: #333;
 }
 
-p {
+h3 {
+    margin-top: 20px;
+    margin-bottom: 5px;
     font-size: 16px;
+    color: #555;
+}
+
+p {
+    font-size: 14px;
     font-weight: bold;
     color: #444;
+    margin: 5px 0;
+}
+
+#timeSpent, #streakCount {
+    font-size: 16px;
+    color: #007bff;
+}
+
+canvas {
+    margin-top: 10px;
+    max-width: 100%;
 }
 
 button {
-    padding: 6px 12px;
-    margin-top: 12px;
+    padding: 8px 16px;
+    margin-top: 15px;
     background-color: #007bff;
     color: white;
     border: none;

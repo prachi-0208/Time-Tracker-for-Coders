@@ -11,6 +11,38 @@ function isCodingSite(url) {
   );
 }
 
+function checkAndResetDaily() {
+  const today = new Date().toLocaleDateString();
+  chrome.storage.local.get(["lastResetDate", "dailyCodingTimes", "codingTime", "streakCount"], (result) => {
+    const lastResetDate = result.lastResetDate;
+    let dailyTimes = result.dailyCodingTimes || [];
+    let currentTime = result.codingTime || 0;
+    let streakCount = result.streakCount || 0;
+
+    if (lastResetDate !== today) {
+      // It's a new day, so store the previous day's time and reset
+      dailyTimes.push(currentTime);
+      if (dailyTimes.length > 7) {
+        dailyTimes.shift(); // Keep only the last 7 days
+      }
+
+      // Check and update streak
+      if (currentTime > 0) {
+        streakCount += 1;
+      } else {
+        streakCount = 0; // Reset streak if no coding time was logged
+      }
+
+      chrome.storage.local.set({
+        codingTime: 0,
+        lastResetDate: today,
+        dailyCodingTimes: dailyTimes,
+        streakCount: streakCount,
+      });
+    }
+  });
+}
+
 function startTimer() {
   if (timerInterval) return;
 
@@ -31,6 +63,7 @@ function stopTimer() {
 }
 
 chrome.tabs.onActivated.addListener(({ tabId }) => {
+  checkAndResetDaily();
   chrome.tabs.get(tabId, (tab) => {
     if (isCodingSite(tab.url)) {
       startTimer();
@@ -42,6 +75,7 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "complete" && tab.active) {
+    checkAndResetDaily();
     if (isCodingSite(tab.url)) {
       startTimer();
     } else {
@@ -51,6 +85,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 chrome.windows.onFocusChanged.addListener((windowId) => {
+  checkAndResetDaily();
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
     stopTimer();
   } else {
